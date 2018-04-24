@@ -113,163 +113,50 @@ int test_rsp_queue_node( struct lib_globals *zg, int rx2, int cnt, int queue)
 	return ret ;
 }
 /*************************************************************************************/
-#define MYMAXSIZE 256
-//按照分割符号',' 把字符串取出来，放到数组，返回对应的数组,不改变原数组
-int Input(char *str, char *dst[], int dst_len, char *ch)
-{
-	char *ptr;
-	int i = 0, j;
-	int len = strlen(str) + 1;
-	char buf[len];
-	memcpy(buf, str, len);
-	ptr = buf;
-
-	char *temp = NULL;
-	while ((temp = strtok(ptr, ch)) != NULL)
-	{
-		int sub_len = strlen(temp) + 1;
-		dst[i] = malloc(strlen(temp) + 1);
-		memcpy(dst[i], temp, sub_len);
-		ptr = NULL;
-		i++;
-		if (dst_len <= i)
-		{
-			printf("dst_len overflow");
-			exit(1);
-		}
-	}
-	return i;
-}
-void ReleaseStringArr(char *arr[], int len)
-{
-	for (int i = 0; i < len; i++)
-	{
-		if (arr[i])
-		{
-			free(arr[i]);
-		}
-	}
-}
-//分别获取字符串中的数字和字符
-void GetStringStr(char *src, char *buf, char *num)
-{
-	char *ptr = src;
-	for (; *ptr; ptr++)
-	{
-		if (isdigit(*ptr))
-		{
-			strcpy(num, ptr);
-			memcpy(buf, src, ptr - src);
-			buf[ptr - src] = 0;
-			break;
-		}
-	}
-}
-//把“-”去掉，返回对应的字符串
-char *Trans(char *s)
-{
-	int i, j, n1, n2;
-	int count;
-	char *buf1[MYMAXSIZE], *buf2[MYMAXSIZE];
-	char *a;
-	char *buf = malloc(1024);
-	char num_buf[255];
-	char *left, *right;
-	char bbuf1[MYMAXSIZE];
-	char nnum1[MYMAXSIZE];
-	char bbuf2[MYMAXSIZE];
-	char nnum2[MYMAXSIZE];
-	bzero(buf, 1024);
-	bzero(buf1, MYMAXSIZE);
-	bzero(buf2, MYMAXSIZE);
-	//先按逗号切割
-	n1 = Input(s, buf1, MYMAXSIZE, ",");
-
-	for (i = 0; i < n1; i++)
-	{
-		bzero(bbuf1, MYMAXSIZE);
-		bzero(nnum1, MYMAXSIZE);
-		bzero(bbuf2, MYMAXSIZE);
-		bzero(nnum2, MYMAXSIZE);
-		a = buf1[i];
-		n2 = Input(a, buf2, MYMAXSIZE, "-");
-
-		GetStringStr(buf2[0], bbuf1, nnum1);
-		GetStringStr(buf2[n2 - 1], bbuf2, nnum2);
-		for (j = atoi(nnum1); j <= atoi(nnum2); j++)
-		{
-
-			strcat(buf, bbuf1);
-			sprintf(num_buf, "%d", j);
-			strcat(buf, num_buf);
-			if (j < atoi(nnum2))
-				strcat(buf, ",");
-		}
-		if (i < n1 - 1)
-			strcat(buf, ",");
-
-		ReleaseStringArr(buf2, n2);
-	}
-	ReleaseStringArr(buf1, n1);
-	return buf;
-}
-#define  ONTNUM 128
+#define  ONTNUM 16
 #define  PONNUM 16
 struct ONT
 {
+  //int id;
   int enflag;
-  time_t starttime; 
+  time_t starttime;
   int interval;
   time_t deadline;
-};
+}OntArray[ONTNUM];
 
 struct PON
 {
-   struct ONT OntArray[ONTNUM];
+   struct ONT Ont[ONTNUM];
 }PonArray[PONNUM];
 
 
 void init_ontarray()
 {
-  int i,j;
+  int i;
   char timeout[100];
   time_t tnow,endtime;
   tnow=time(NULL);
   
   sprintf(timeout,"%d",tnow+60);
   endtime=(time_t)(atoi(timeout));
-  for(j=0;j<PONNUM;j++){
-	  for(i=0;i<ONTNUM;i++){
-		PonArray[j].OntArray[i]=(struct ONT){1,tnow,60,endtime};
-	  }
+  for(i=0;i<ONTNUM;i++){
+	OntArray[i]=(struct ONT){1,tnow,60,endtime};
   }
 }
 
 CLI (k_nsm,
      k_cmd,
      "catont",
-     "cat ont code")
+     "catont code")
 {
-  int i,j;
-  for(j=0;j<PONNUM;j++){
-	  for(i=0;i<ONTNUM;i++){  
-		zlog_info(cli->zg,"PonArray[%d].OntArray[%d].enflag=%d",j+1,i+1,PonArray[j].OntArray[i].enflag);
-		zlog_info(cli->zg,"PonArray[%d].OntArray[%d].starttime=%s",j+1,i+1,ctime(&(PonArray[j].OntArray[i].starttime)));
-		zlog_info(cli->zg,"PonArray[%d].OntArray[%d].interval=%d",j+1,i+1,PonArray[j].OntArray[i].interval);
-		zlog_info(cli->zg,"PonArray[%d].OntArray[%d].deadline=%s",j+1,i+1,ctime(&(PonArray[j].OntArray[i].deadline)));
-		zlog_info(cli->zg,"\n");
-	  }
+  int i;
+  for(i=0;i<ONTNUM;i++){  
+    zlog_info(cli->zg,"OntArray[%d].enflag=%d",i+1,OntArray[i].enflag);
+    zlog_info(cli->zg,"OntArray[%d].starttime=%s",i+1,ctime(&(OntArray[i].starttime)));
+    zlog_info(cli->zg,"OntArray[%d].interval=%d",i+1,OntArray[i].interval);
+    zlog_info(cli->zg,"OntArray[%d].deadline=%s",i+1,ctime(&(OntArray[i].deadline)));
+    zlog_info(cli->zg,"\n\n");
   }
-}
-int HowInput(char *str)
-{
-	int plflag;
-	if(strstr(str,","))
-	  plflag=1;
-    else if(strstr(str,"-"))
-	  plflag=2;
-    else plflag=3;
-	return plflag;
 }
 
 
@@ -284,14 +171,10 @@ CLI (ont_silence_enable_nsm,
      "enable ont silence",
      "disable ont silence")
 {
-  int i,j,flag,tmp;
+  int i,flag;
   time_t tnow;
   zlog_info(cli->zg, "set silence...");
-  int len,plflag;
-  char *str[MYMAXSIZE];
-  char *ptr;
-  plflag= HowInput(argv[0]);
-
+  
   if ( 0 == pal_strcmp(argv[1], "enable") ) {
     flag=1;
 	tnow=time(NULL);
@@ -299,48 +182,19 @@ CLI (ont_silence_enable_nsm,
   else {
     flag=0;
   }
-  if(plflag==1){//","
-	len=Input(argv[0],str,MYMAXSIZE, ",");
-    zlog_info(cli->zg,"len=%d",len);
-	for(j=0;j<PONNUM;j++)
-	  for(i=0;i<len;i++){
-		  tmp=atoi(str[i])-1;
-		  PonArray[j].OntArray[tmp].starttime=tnow;
-		  PonArray[j].OntArray[tmp].enflag=flag;
-	  }
-	  // for(i=0;i<len;i++)
-       // zlog_info(cli->zg,"str[%d]=%s",i,str[i]);	
-  }
-  else if(plflag==2){//"-"
-	ptr=Trans(argv[0]);
-	len=Input(ptr,str,MYMAXSIZE, ",");
-	for(j=0;j<PONNUM;j++)
-	  for(i=0;i<len;i++){
-		  tmp=atoi(str[i])-1;
-		  PonArray[j].OntArray[tmp].starttime=tnow;
-		  PonArray[j].OntArray[tmp].enflag=flag;
-	  }
-	 // for(i=0;i<len;i++)
-       // zlog_info(cli->zg,"str[%d]=%s",i,str[i]);		 
-	
+  
+  if ( 0 == pal_strcmp(argv[0], "all") ) {
+	for(i=0;i<ONTNUM;i++){
+      OntArray[i].starttime=tnow;
+	  OntArray[i].enflag=flag;
+	}
   }
   else{
-	if ( 0 == pal_strcmp(argv[0], "all") ) {
-      for(j=0;j<PONNUM;j++)
-		for(i=0;i<ONTNUM;i++){
-		  PonArray[j].OntArray[i].starttime=tnow;
-		  PonArray[j].OntArray[i].enflag=flag;
-		}
-	  }
-	else{
-		i=atoi(argv[0])-1;
-		for(j=0;j<PONNUM;j++){
-		  PonArray[j].OntArray[i].starttime=tnow;
-		  PonArray[j].OntArray[i].enflag=flag;
-		}	
-	}	  
-  }
-
+	i=atoi(argv[0])-1;
+	OntArray[i].starttime=tnow;
+	OntArray[i].enflag=flag;	
+  }	  
+  
   return CLI_SUCCESS;
 }
 CLI (ont_silence_timeout_nsm,
@@ -355,85 +209,39 @@ CLI (ont_silence_timeout_nsm,
      "interval code",
      "interval of timeout")
 {
-  int i,j,flag,plflag,t,tmp,len;
+  int i,flag,t;
   char timeout[100];
-  char *str[MYMAXSIZE];
-  char *ptr;
   zlog_info(cli->zg, "set silence time...");
-  plflag= HowInput(argv[0]);
 
+  if ( 0 == pal_strcmp(argv[0], "all") ) {
+    for(i=0;i<ONTNUM;i++){
+	  if(OntArray[i].enflag==1){
+	    OntArray[i].interval=atoi(argv[1]);
+	    sprintf(timeout,"%d",OntArray[i].starttime+OntArray[i].interval);	
+	    OntArray[i].deadline=(time_t)(atoi(timeout));
+	  }
+	  else{
+		zlog_info(cli->zg, "ont id =%d disable\n",i);
+		continue;
+	  }
+	}
+  }
+  else {
+	i=atoi(argv[0])-1;
+	if(OntArray[i].enflag==1){
+      OntArray[i].interval=atoi(argv[1]);
+	  sprintf(timeout,"%d",OntArray[i].starttime+OntArray[i].interval);
+	  OntArray[i].deadline=(time_t)(atoi(timeout));
+	}
+	else{
+	  zlog_info(cli->zg, "ont id =%d disable\n",i);	
+	}
+  }
   
-   if(plflag==1){//","
-	len=Input(argv[0],str,MYMAXSIZE, ",");
-    zlog_info(cli->zg,"len=%d",len);
-	for(j=0;j<PONNUM;j++)
-		for(i=0;i<len;i++){
-		  tmp=atoi(str[i])-1;
-		  if(PonArray[j].OntArray[tmp].enflag==1){
-			PonArray[j].OntArray[tmp].interval=atoi(argv[1]);
-			sprintf(timeout,"%d",PonArray[j].OntArray[tmp].starttime+PonArray[j].OntArray[tmp].interval);	
-			PonArray[j].OntArray[tmp].deadline=(time_t)(atoi(timeout));
-		  }
-		  else{
-			zlog_info(cli->zg, "ponid =%d,ont id =%d disable\n",j+1,tmp+1);
-			continue;
-		  }
-		}
-	// for(i=0;i<len;i++)
-       // zlog_info(cli->zg,"str[%d]=%s",i,str[i]);
-  }
-  else if(plflag==2){//"-"
-	ptr=Trans(argv[0]);
-	len=Input(ptr,str,MYMAXSIZE, ",");
-	for(j=0;j<PONNUM;j++)
-		for(i=0;i<len;i++){
-		  tmp=atoi(str[i])-1;
-		  if(PonArray[j].OntArray[tmp].enflag==1){
-			PonArray[j].OntArray[tmp].interval=atoi(argv[1]);
-			sprintf(timeout,"%d",PonArray[j].OntArray[tmp].starttime+PonArray[j].OntArray[i].interval);	
-			PonArray[j].OntArray[tmp].deadline=(time_t)(atoi(timeout));
-		  }
-		  else{
-			zlog_info(cli->zg, "ponid =%d,ont id =%d disable\n",j+1,i+1);
-			continue;
-		  }
-		}
-	 // for(i=0;i<len;i++)
-       // zlog_info(cli->zg,"str[%d]=%s",i,str[i]);		 
-	
-  }
-  else{
-	if ( 0 == pal_strcmp(argv[0], "all") ) {
-	  for(j=0;j<PONNUM;j++)
-		for(i=0;i<ONTNUM;i++){
-		  if(PonArray[j].OntArray[i].enflag==1){
-			PonArray[j].OntArray[i].interval=atoi(argv[1]);
-			sprintf(timeout,"%d",PonArray[j].OntArray[i].starttime+PonArray[j].OntArray[i].interval);	
-			PonArray[j].OntArray[i].deadline=(time_t)(atoi(timeout));
-		  }
-		  else{
-			zlog_info(cli->zg, "ponid =%d,ont id =%d disable\n",j+1,i+1);
-			continue;
-		  }
-		}
-	}
-	else {
-		i=atoi(argv[0])-1;
-		for(j=0;j<PONNUM;j++){
-		  if(PonArray[j].OntArray[i].enflag==1){
-			PonArray[j].OntArray[i].interval=atoi(argv[1]);
-			sprintf(timeout,"%d",PonArray[j].OntArray[i].starttime+PonArray[j].OntArray[i].interval);
-			PonArray[j].OntArray[i].deadline=(time_t)(atoi(timeout));
-		  }
-		  else{
-		    zlog_info(cli->zg, "ponid =%d,ont id =%d disable\n",j+1,i+1);
-		  }
-		}
-	}
-  }
- 
+  //zlog_info(cli->zg, "set all ont silence  timeout interval %s , time = %d ", argv[0] , t);
   return CLI_SUCCESS;
 }
+
 CLI (show_ont_silence_time_nsm,
      show_nsm_ont_silence_time_cmd,
      "show ont silence info ponid <1-16> ontid (WORD|all)",
@@ -448,17 +256,17 @@ CLI (show_ont_silence_time_nsm,
      "all ont")
 {
   time_t tnow;
-  int i,j;
+  int i;
   int ponid=atoi(argv[0]);
-  j=ponid-1;
   cli_out(cli, "show silence time...\n");
   zlog_info(cli->zg, "show silence time...");	
+  zlog_info(cli->zg, "pon id =%d \n",ponid);	
   if ( 0 == pal_strcmp(argv[1], "all") ) {  
     for(i=0;i<ONTNUM;i++){
-	  if(PonArray[j].OntArray[i].enflag==1){
+	  if(OntArray[i].enflag==1){
 		zlog_info(cli->zg,"ont id = %d ",i+1);
-		zlog_info(cli->zg,"silencet starttime=%s",ctime(&(PonArray[j].OntArray[i].starttime)));   
-	    zlog_info(cli->zg,"silencet deadline=%s",ctime(&(PonArray[j].OntArray[i].deadline)));  
+		zlog_info(cli->zg,"silencet starttime=%s",ctime(&(OntArray[i].starttime)));   
+	    zlog_info(cli->zg,"silencet deadline=%s",ctime(&(OntArray[i].deadline)));  
 	  }
 	  else{
 		zlog_info(cli->zg, "ont id =%d disable\n",i);
@@ -468,18 +276,19 @@ CLI (show_ont_silence_time_nsm,
   }
   else {
 	i=atoi(argv[1])-1;  
-	if(PonArray[j].OntArray[i].enflag==1){
+	if(OntArray[i].enflag==1){
 	  zlog_info(cli->zg,"ont id = %d ",i+1);
-	  zlog_info(cli->zg,"silencet starttime=%s", ctime(&(PonArray[j].OntArray[i].starttime)));
-      zlog_info(cli->zg,"silencet deadline=%s",ctime(&(PonArray[j].OntArray[i].deadline)));
+	  zlog_info(cli->zg,"silencet starttime=%s", ctime(&(OntArray[i].starttime)));
+      zlog_info(cli->zg,"silencet deadline=%s",ctime(&(OntArray[i].deadline)));
 	}
 	else{
-		zlog_info(cli->zg, "ponid =%d,ont id =%d disable\n",j,i+1);
+		zlog_info(cli->zg, "ont id =%d disable\n",i+1);
 	}
   }
   
-  return CLI_SUCCESS;	
+  return CLI_SUCCESS;
 }
+
 void nsm_cli_init_ont (struct cli_tree *ctree)
 {
 /* Install ont commands. */
@@ -492,183 +301,6 @@ void nsm_cli_init_ont (struct cli_tree *ctree)
   cli_install_gen (ctree, /*EXEC_MODE*/EXEC_MODE, PRIVILEGE_MAX, (0),
 				&k_cmd);
   init_ontarray();
-}
-/* NSM debug server flags. */
-#define NSM_DEBUG_SET_REQUEST	0x01
-#define NSM_DEBUG_SET_REPLY		0x02
-#define NSM_DEBUG_SET_ALL		0x03
-
-#define NSM_DEBUG_GET_REQUEST	0x04
-#define NSM_DEBUG_GET_REPLY	    0x08
-#define NSM_DEBUG_GET_ALL	    0x0c
-
-#define NSM_DEBUG_OMCI_REQUEST	0x10
-#define NSM_DEBUG_OMCI_REPLY	0x20
-#define NSM_DEBUG_OMCI_ALL	    0x30
-CLI (debug_server_set_nsm,
-	 debug_nsm_server_set_cmd,
-	 "debug xponmngd server set (request|reply|all) (enable|disable)",
-	 CLI_DEBUG_STR,
-     CLI_NSM_STR,
-	 "set code",	  	  
-	 "request code",
-	 "reply code",
-	 "all code"
-	 "enable code"
-	 "disable")
-{
-	int v2,v3;
-	u_int16_t debug_server_set_flag=0;
-	if ( 0 == pal_strcmp(argv[0], "request") ) {
-	  v2=1;
-	}
-	else if( 0 == pal_strcmp(argv[0], "reply") ) {
-	  v2=2;
-	}
-	else v2=3;
-	
-	if ( 0 == pal_strcmp(argv[1], "enable") ) {
-	  v3=1;
-	}
-	else v3=0;
-	
-	switch(v2)
-   {
-	  case 1:
-		if(v3==1)
-		  SET_FLAG(debug_server_set_flag,NSM_DEBUG_SET_REQUEST);
-		else UNSET_FLAG(debug_server_set_flag,NSM_DEBUG_SET_REQUEST);
-	  break;
-	  case 2:	
-		if(v3==1)
-		  SET_FLAG(debug_server_set_flag,NSM_DEBUG_SET_REPLY);
-		else UNSET_FLAG(debug_server_set_flag,NSM_DEBUG_SET_REPLY);	   
-		
-	  break;
-	  case 3:
-		if(v3==1)
-		  SET_FLAG(debug_server_set_flag,NSM_DEBUG_SET_ALL);
-		else UNSET_FLAG(debug_server_set_flag,NSM_DEBUG_SET_ALL);
-		
-	  break;
-   }	
-    DEBUG_PACKET_ON (cli, debug_server_set_flag);
-	zlog_info(cli->zg, "flag=%d",debug_server_set_flag);
-	//deal_server_debug(debug_server_set_flag);
-}
-CLI (debug_server_get_nsm,
-	 debug_nsm_server_get_cmd,
-	 "debug xponmngd server get (request|reply|all) (enable|disable)",
-	 CLI_DEBUG_STR,
-     CLI_NSM_STR,
-	 "get code",	  	  
-	 "request code",
-	 "reply code",
-	 "all code"
-	 "enable code"
-	 "disable")
-{
-	int v2,v3;
-	u_int16_t debug_server_get_flag=0;
-	if ( 0 == pal_strcmp(argv[0], "request") ) {
-	  v2=1;
-	}
-	else if( 0 == pal_strcmp(argv[0], "reply") ) {
-	  v2=2;
-	}
-	else v2=3;
-	
-	if ( 0 == pal_strcmp(argv[1], "enable") ) {
-	  v3=1;
-	}
-	else v3=0;
-	
-	switch(v2)
-  {
-	  case 1:
-		if(v3==1)
-		  SET_FLAG(debug_server_get_flag,NSM_DEBUG_GET_REQUEST);
-		else UNSET_FLAG(debug_server_get_flag,NSM_DEBUG_GET_REQUEST);
-		
-	  break;
-	  case 2:	
-		if(v3==1)
-		  SET_FLAG(debug_server_get_flag,NSM_DEBUG_GET_REPLY);
-		else UNSET_FLAG(debug_server_get_flag,NSM_DEBUG_GET_REPLY);	   
-		
-	  break;
-	  case 3:
-		if(v3==1)
-		  SET_FLAG(debug_server_get_flag,NSM_DEBUG_GET_ALL);
-		else UNSET_FLAG(debug_server_get_flag,NSM_DEBUG_GET_ALL);
-		
-	  break;
-  }	
-	DEBUG_PACKET_ON (cli, debug_server_get_flag);
-	zlog_info(cli->zg, "flag=%d",debug_server_get_flag);
-	//deal_server_debug(debug_server_get_flag);
-}
-CLI (debug_server_omci_nsm,
-	 debug_nsm_server_omci_cmd,
-	 "debug xponmngd server get (request|reply|all) (enable|disable)",
-	 CLI_DEBUG_STR,
-     CLI_NSM_STR,
-	 "omci code",	  	  
-	 "request code",
-	 "reply code",
-	 "all code"
-	 "enable code"
-	 "disable")
-{
-	int v2,v3;
-	u_int16_t debug_server_omci_flag=0;
-	if ( 0 == pal_strcmp(argv[0], "request") ) {
-	  v2=1;
-	}
-	else if( 0 == pal_strcmp(argv[0], "reply") ) {
-	  v2=2;
-	}
-	else v2=3;
-	
-	if ( 0 == pal_strcmp(argv[1], "enable") ) {
-	  v3=1;
-	}
-	else v3=0;
-	
-	switch(v2)
-	{
-	  case 1:
-		if(v3==1)
-		  SET_FLAG(debug_server_omci_flag,NSM_DEBUG_OMCI_REQUEST);
-		else UNSET_FLAG(debug_server_omci_flag,NSM_DEBUG_OMCI_REQUEST);
-		
-	  break;
-	  case 2:
-		if(v3==1)
-		  SET_FLAG(debug_server_omci_flag,NSM_DEBUG_OMCI_REPLY);
-		else UNSET_FLAG(debug_server_omci_flag,NSM_DEBUG_OMCI_REPLY);		   
-		
-	  break;
-	  case 3:
-		if(v3==1)
-		  SET_FLAG(debug_server_omci_flag,NSM_DEBUG_OMCI_ALL);
-		else UNSET_FLAG(debug_server_omci_flag,NSM_DEBUG_OMCI_ALL);
-		
-	  break;
-	}
-	DEBUG_PACKET_ON (cli, debug_server_omci_flag);
-	zlog_info(cli->zg, "flag=%d",debug_server_omci_flag);
-	//deal_server_debug(debug_server_omci_flag);
-}
-
-void nsm_debug_install (struct cli_tree *ctree)
-{
-  cli_install_gen (ctree, /*EXEC_MODE*/EXEC_MODE, PRIVILEGE_MAX, (0),
-				&debug_nsm_server_set_cmd);			
-  cli_install_gen (ctree, /*EXEC_MODE*/EXEC_MODE, PRIVILEGE_MAX, (0),
-				&debug_nsm_server_get_cmd);
-  cli_install_gen (ctree, /*EXEC_MODE*/EXEC_MODE, PRIVILEGE_MAX, (0),
-				&debug_nsm_server_omci_cmd);				
 }
 /*************************************************************************************/
 
@@ -1414,9 +1046,6 @@ nsm_cli_init_debug (struct cli_tree *ctree)
 		   &show_debugging_test_cmd);
 #endif
   /*在FACOTRY DEBUG模式下放显示命令*/
-/*****************************/
-  nsm_debug_install(ctree);
-/*****************************/
   cli_install_gen (ctree, FACTORY_DEBUG_MODE, PRIVILEGE_MAX, (0), &dump_debugging_nsm_cmd);
 
   /* "debug nsm" commands. */
