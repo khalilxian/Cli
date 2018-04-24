@@ -117,7 +117,6 @@ int test_rsp_queue_node( struct lib_globals *zg, int rx2, int cnt, int queue)
 #define  PONNUM 16
 struct ONT
 {
-  //int id;
   int enflag;
   time_t starttime;
   int interval;
